@@ -21,6 +21,7 @@ func main() {
 
 	username := os.Getenv("USERNAME")
 	password := os.Getenv("PASSWORD")
+	tokenToVerify := os.Getenv("TOKEN_TO_VERIFY")
 
 	token, err := createJWTToken(username, password)
 	if err != nil {
@@ -29,6 +30,18 @@ func main() {
 
 	log.Println("token created!")
 	log.Println(token)
+
+	valid, err := verifyToken(tokenToVerify)
+	if err != nil {
+		log.Fatalf("error to verify token: %v", err)
+	}
+
+	if valid {
+		log.Println("token is valid!")
+	} else {
+		log.Println("token is not valid")
+	}
+
 }
 
 func createJWTToken(username, password string) (string, error) {
@@ -47,4 +60,32 @@ func createJWTToken(username, password string) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func verifyToken(tokenString string) (bool, error) {
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		return []byte(secretKey), nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	claims := token.Claims
+	expDate, err := claims.GetExpirationTime()
+	if err != nil {
+		return false, err
+	}
+
+	log.Printf("exp: %s", expDate)
+
+	issuedAt, err := claims.GetIssuedAt()
+	if err != nil {
+		return false, err
+	}
+
+	log.Printf("iat: %s", issuedAt)
+
+	fmt.Printf("claims: %v\n", claims)
+
+	return token.Valid, nil
 }
